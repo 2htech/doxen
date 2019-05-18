@@ -1,4 +1,4 @@
-<?php declare(strict_types = 1);
+<?php declare(strict_types=1);
 
 namespace Tlapnet\Doxen\Component;
 
@@ -21,6 +21,7 @@ use Tlapnet\Doxen\Widget\WidgetRenderer;
 
 class DoxenControl extends Control
 {
+
 
 	/** @var string @persistent */
 	public $page;
@@ -46,32 +47,41 @@ class DoxenControl extends Control
 	/** @var WidgetRenderer */
 	private $widgetRenderer;
 
-	public function __construct(DocTree $tree, ?Config $config = null)
-	{
-		parent::__construct();
-		$this->tree = $tree;
-		$this->config = $config ?: new Config();
-	}
 
 	/**
-	 * @param IPresenter $presenter
-	 * @phpcsSuppress SlevomatCodingStandard.TypeHints.TypeHintDeclaration.MissingParameterTypeHint
+	 * DoxenControl constructor.
+	 * @param DocTree $tree
+	 * @param Config|null $config
 	 */
-	protected function attached($presenter): void
+	public function __construct(DocTree $tree, ?Config $config = null)
 	{
-		parent::attached($presenter);
+		$this->tree   = $tree;
+		$this->config = $config ?: new Config();
+		$this->setMonitor();
+	}
 
-		if ($presenter instanceof Presenter) {
+
+	/**
+	 * Set monitor in component
+	 */
+	private function setMonitor()
+	{
+		$this->monitor(Control::class, function (){
 			$this->widgetRenderer = new WidgetRenderer($this->createTemplate());
 			$this->emit(new ConfigEvent($this->config));
 			$this->emit(new DocTreeEvent($this->tree));
-		}
+		});
 	}
 
+
+	/**
+	 * @param ISearcher $searcher
+	 */
 	public function setSearcher(ISearcher $searcher): void
 	{
 		$this->searcher = $searcher;
 	}
+
 
 	/**
 	 * Handle incoming search request
@@ -80,10 +90,11 @@ class DoxenControl extends Control
 	{
 		$query = $this->getPresenter()->getHttpRequest()->getPost('query');
 		if ($this->searcher && $query !== null) {
-			$this->searchQuery = $query;
+			$this->searchQuery  = $query;
 			$this->searchResult = $this->searcher->search($this->tree, $query);
 		}
 	}
+
 
 	public function handleEvent(string $type): void
 	{
@@ -92,10 +103,12 @@ class DoxenControl extends Control
 		}
 	}
 
+
 	public function registerListener(IListener $listener): void
 	{
 		$this->listeners[] = $listener;
 	}
+
 
 	/**
 	 * Emitt specified event to all listener
@@ -113,24 +126,26 @@ class DoxenControl extends Control
 		return $event;
 	}
 
+
 	/**
 	 * Called before template is gonna be rendered
 	 */
 	protected function beforeRender(): void
 	{
 		$this->template->_widgetRenderer = $this->widgetRenderer;
-		$this->template->tree = $this->tree;
+		$this->template->tree            = $this->tree;
 
-		$this->template->searcher = $this->searcher;
-		$this->template->searchQuery = $this->searchQuery;
+		$this->template->searcher     = $this->searcher;
+		$this->template->searchQuery  = $this->searchQuery;
 		$this->template->searchResult = $this->searchResult;
 
-		$this->template->addFilter('contents', function ($file) {
+		$this->template->addFilter('contents', function ($file){
 			return file_get_contents($file);
 		});
 
 		$this->config->setupTemplate($this->template);
 	}
+
 
 	/**
 	 * Main render entrypoint
@@ -141,10 +156,12 @@ class DoxenControl extends Control
 
 		if ($this->searchResult === null) {
 			$this->renderDoc();
-		} else {
+		}
+		else {
 			$this->renderSearch();
 		}
 	}
+
 
 	/**
 	 * Render single page
@@ -158,7 +175,8 @@ class DoxenControl extends Control
 		if (empty($this->page)
 			|| $this->tree->getHomepage()->getPath() === $this->page) {
 			$this->renderHomepage();
-		} else {
+		}
+		else {
 			$node = $this->tree->getNode($this->page);
 
 			if ($node) {
@@ -169,15 +187,17 @@ class DoxenControl extends Control
 					$this->template->setFile($this->config->getListTemplate());
 				}
 
-				$this->template->doc = $node;
-				$this->template->page = $this->page;
+				$this->template->doc        = $node;
+				$this->template->page       = $this->page;
 				$this->template->breadcrumb = $this->tree->getBreadcrumbs($node);
 				$this->template->render();
-			} else {
+			}
+			else {
 				$this->renderHomepage();
 			}
 		}
 	}
+
 
 	/**
 	 * Render homepage
@@ -191,10 +211,11 @@ class DoxenControl extends Control
 //		$template->breadcrumb =  $homepageNode->getPath() ? $this->docTree->getBreadcrumb($homepageNode->getPath()) : [$homepageNode];
 
 		$this->template->breadcrumb = [$homepageNode];
-		$this->template->doc = $homepageNode;
+		$this->template->doc        = $homepageNode;
 
 		$this->template->render();
 	}
+
 
 	/**
 	 * Render search
@@ -208,7 +229,7 @@ class DoxenControl extends Control
 		$node = new TextNode();
 		$node->setTitle('Vyhledávání');
 		$this->template->breadcrumb = [$node];
-		$this->template->doc = $node;
+		$this->template->doc        = $node;
 
 		$this->template->render();
 	}
